@@ -1,3 +1,5 @@
+# TODO Othman
+
 class SchemaExtractor:
     """Introspect SQLite databases to extract table schemas and relations."""
 
