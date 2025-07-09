@@ -1,8 +1,8 @@
 import sqlite3
-from typing import Dict, List, Any
+from typing import List, Dict, Any
 
 class SchemaExtractor:
-    """Introspect SQLite databases to extract table schemas and relations."""
+    """Introspect SQLite databases to extract column-table pairs and table metadata."""
 
     def __init__(self, db_path: str):
         """Open the database and prepare metadata extraction."""
@@ -10,16 +10,26 @@ class SchemaExtractor:
         self.conn = sqlite3.connect(self.db_path)
         self.cursor = self.conn.cursor()
 
-    def extract(self) -> Dict[str, Any]:
-        """Return a structured representation of the schema."""
-        schema = {}
+    def extract_column_table_pairs(self) -> List[str]:
+        """
+        Return a list of strings formatted as 'column-table' for all columns in the schema.
+        """
+        result = []
         tables = self._get_tables()
         for table in tables:
-            schema[table] = {
-                "columns": self._get_columns(table),
-                "foreign_keys": self._get_foreign_keys(table)
-            }
-        return schema
+            columns = self._get_columns(table)
+            for col in columns:
+                result.append(f"{col['name']}-{table}")
+        return result
+
+    def extract_table_metadata(self, table_name: str) -> Dict[str, Any]:
+        """
+        Return metadata (columns + foreign keys) for a specific table.
+        """
+        return {
+            "columns": self._get_columns(table_name),
+            "foreign_keys": self._get_foreign_keys(table_name)
+        }
 
     def _get_tables(self) -> List[str]:
         self.cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
@@ -51,12 +61,26 @@ class SchemaExtractor:
 
     def close(self):
         self.conn.close()
-        
+
+
 if __name__ == "__main__":
     extractor = SchemaExtractor("data/sqlite/employee_db.sqlite")
-    schema = extractor.extract()
-    
-    import json
-    print(json.dumps(schema, indent=2, ensure_ascii=False))
-    
+
+    # Affiche les paires colonne-table
+    print("(colonne-table)")
+    for item in extractor.extract_column_table_pairs():
+        print(item)
+
+    # Demande à l'utilisateur une table à analyser
+    table_name = input("\nEntrez le nom d'une table pour voir ses métadonnées : ").strip()
+
+    try:
+        metadata = extractor.extract_table_metadata(table_name)
+        import json
+        print(f"\n Métadonnées de la table '{table_name}' ")
+        print(json.dumps(metadata, indent=2, ensure_ascii=False))
+    except Exception as e:
+        print(f"Erreur : impossible d'extraire les métadonnées de la table '{table_name}'.")
+        print(f"Détail : {e}")
+
     extractor.close()
