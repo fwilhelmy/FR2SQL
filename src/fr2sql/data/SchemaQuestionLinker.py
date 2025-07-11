@@ -10,7 +10,7 @@ class SchemaQuestionLinker:
         """
         pass
 
-    def link(self, question: str):
+    def link(self, question: str) -> (float, list[str])
         """Return tables and columns mentioned in the question.
 
         TODO: extract keywords from the question and map them to schema items.
