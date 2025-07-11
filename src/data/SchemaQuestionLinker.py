@@ -7,7 +7,10 @@ import yake
 from sklearn.feature_extraction.text import TfidfVectorizer
 from rapidfuzz import process, fuzz
 
-from SchemaExtractor import SchemaExtractor
+# Local import used only in the example section below.  When this module is
+# imported as part of the library, the relative path ensures it resolves
+# correctly.
+from .SchemaExtractor import SchemaExtractor
 
 def fit_tfidf(corpus, ngram_range=(1, 3), language=['french']):
     """
