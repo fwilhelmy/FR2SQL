@@ -1,2 +1,3 @@
-from .SchemaExtractor import SchemaExtractor
-from .DialogModule import DialogModule
+from .DBManager import DBManager
+
+__all__ = ["DBManager"]
