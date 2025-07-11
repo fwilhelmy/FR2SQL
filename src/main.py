@@ -3,9 +3,9 @@ schema and producing a prompt for the future LLM agent."""
 
 from typing import List, Dict
 
-from data.SchemaExtractor import SchemaExtractor
-from data.SchemaQuestionLinker import schema_link, TRESHOLD
-from pipeline.ContextGenerator import ContextGenerator
+from database.SchemaExtractor import SchemaExtractor
+from database.SchemaQuestionLinker import schema_link, TRESHOLD
+from pipeline.ContextGenerator import generate_llm_context
 
 
 DB_PATH = "data/sqlite/employee_db.sqlite"
@@ -52,7 +52,7 @@ def main() -> None:
 
     # Flatten table and column names for the linker
     schema_elements: List[str] = list(schema_pairs.keys()) + [
-        col for cols in schema_pairs.values() for col in cols
+        f"{col} {table}" for table, cols in schema_pairs.items() for col in cols
     ]
 
     # Example corpus of previous user requests.  In a real system this would be
@@ -62,16 +62,23 @@ def main() -> None:
         "liste des employés embauchés après 2015",
         "nombre total de projets par manager",
     ]
-
+    # Afficher le total des ventes par ville pour l'année 2023.
     matches = schema_link(question, corpus, schema_elements)
     matches.sort(key=lambda m: m["score"], reverse=True)
 
     selected = []
-    selected_names = []
+    selected_tables = []
     for m in matches:
-        if m["schema_element"] not in selected_names and m["score"] > TRESHOLD:
+        meta = m["schema_element"].split(" ")
+        if len(meta) > 1:
+            m["schema_table"] = meta[1]
+            m["schema_column"] = meta[0]
+        else:
+            m["schema_table"] = meta[0]
+        if m["schema_table"] not in selected_tables and m["score"] > TRESHOLD:
             selected.append(m)
-            selected_names.append(m["schema_element"])
+            selected_tables.append(m["schema_table"])
+        print(f"Matched: '{m['keyword']}' → '{m['schema_table']}.{m.get('schema_column',"")}' ({m['score']}%)")
 
     avg_score = compute_average([m["score"] for m in selected])
 
@@ -80,9 +87,8 @@ def main() -> None:
         question += " " + ask_clarification()
 
     # Determine which tables were referenced
-    tables = [name for name in selected_names if name in schema_pairs]
     table_metadata = {
-        t: extractor.extract_table_metadata(t) for t in tables
+        t: extractor.extract_table_metadata(t) for t in selected_tables
     }
 
     # Convert to the format expected by ContextGenerator
@@ -93,8 +99,7 @@ def main() -> None:
             "columns": meta["columns"],
         })
 
-    context_gen = ContextGenerator(None, None)
-    prompt = context_gen.generate_llm_context(schema_for_prompt, question)
+    prompt = generate_llm_context(schema_for_prompt, question, db_type="sqlite")
 
     sql = generate_sql(prompt)
     execute_sql(sql, DB_PATH)
