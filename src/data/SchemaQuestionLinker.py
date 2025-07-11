@@ -116,27 +116,37 @@ def main():
     schema = extractor.extract_column_table_pairs()
 
     question = "Quel est le salaire moyen des employés par département ?"
+    #question = "Quel est la cité de chaque département ?"
 
-    print()
+    schema_elements = list(schema.keys())
+    for table, cols in schema.items():
+        for col in cols:
+            schema_elements.append(f"{col} {table}")
 
-    matches = schema_link(question, corpus, [schema_elem[0] for schema_elem in schema])
-    
+    print(f"Schema elements: {schema_elements}")
+
+    matches = schema_link(question, corpus, schema_elements)
+
+    for m in matches:
+        meta = m["schema_element"].split(" ")
+        if len(meta) > 1:
+            m["schema_table"] = meta[1]
+            m["schema_column"] = meta[0]
+        else:
+            m["schema_table"] = meta[0]
+
     sorted_matches = sorted(matches, key=lambda x: x['score'], reverse=True)
-    selected_matches = []
-    selected_schema = []
+    selected_entries = []
+    selected_tables = []
     for m in sorted_matches:
-        if m['schema_element'] not in selected_schema and m['score'] > TRESHOLD:
-            selected_matches.append(m)
-            selected_schema.append(m['schema_element'])
-        print(f"Matched: '{m['keyword']}' → '{m['schema_element']}' ({m['score']}%)")
+        if m['schema_table'] not in selected_tables and m['score'] > TRESHOLD:
+            selected_entries.append(m)
+            selected_tables.append(m['schema_table'])
+        print(f"Matched: '{m['keyword']}' → '{m['schema_table']}.{m.get('schema_column',"")}' ({m['score']}%)")
 
-    print(f"Found {len(selected_matches)} relevant schema links:")
-    for m in selected_matches:
-        print(f"‘{m['keyword']}’ → {m['schema_element']}  ({m['score']}%)")
-
-    average_score = average([m['score'] for m in selected_matches])
-    selected_tables = [m['schema_element'] for m in selected_matches if m['schema_element'] in schema]
-
+    print(f"Found {len(selected_entries)} relevant schema links : {', '.join([table for table in selected_tables])}")    
+    average_score = average([m['score'] for m in selected_entries])
+    selected_tables = [m['schema_element'] for m in selected_entries if m['schema_element'] in schema]
     return average_score, selected_tables
 
 if __name__ == "__main__":
