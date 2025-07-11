@@ -7,6 +7,8 @@ import yake
 from sklearn.feature_extraction.text import TfidfVectorizer
 from rapidfuzz import process, fuzz
 
+from SchemaExtractor import SchemaExtractor
+
 def fit_tfidf(corpus, ngram_range=(1, 3), language=['french']):
     """
     1) Build & fit a TF-IDF vectorizer on your domain corpus.
@@ -103,15 +105,21 @@ def main():
         # … etc.
     ]
 
-    schema = [ # list of tables or columns in your database
-        "employees", "departments", "projects", 
-        "salary", "hire_date", "manager_id", 
-        "project_count", "department_name",
-    ]
+    extractor = SchemaExtractor("data/sqlite/employee_db.sqlite")
+
+    # schema = [ # list of tables or columns in your database
+    #     "employees", "departments", "projects", 
+    #     "salary", "hire_date", "manager_id", 
+    #     "project_count", "department_name",
+    # ]
+
+    schema = extractor.extract_column_table_pairs()
 
     question = "Quel est le salaire moyen des employés par département ?"
 
-    matches = schema_link(question, corpus, schema)
+    print()
+
+    matches = schema_link(question, corpus, [schema_elem[0] for schema_elem in schema])
     
     sorted_matches = sorted(matches, key=lambda x: x['score'], reverse=True)
     selected_matches = []
