@@ -2,6 +2,7 @@
 # Hybrid Keyword→Schema Linking Pipeline
 # ─────────────────────────────────────────────────────────────────────────────
 
+from numpy import average
 import yake
 from sklearn.feature_extraction.text import TfidfVectorizer
 from rapidfuzz import process, fuzz
@@ -93,8 +94,8 @@ def schema_link(question, corpus, schema_elements):
 
 TRESHOLD = 70  # minimum score for a match to be considered relevant
 
-if __name__ == "__main__":
-    # 1. your past queries / documentation
+def main():
+        # 1. your past queries / documentation
     corpus = [
         "montre-moi le salaire moyen par département",
         "liste des employés embauchés après 2015",
@@ -119,8 +120,18 @@ if __name__ == "__main__":
         if m['schema_element'] not in selected_schema and m['score'] > TRESHOLD:
             selected_matches.append(m)
             selected_schema.append(m['schema_element'])
+        print(f"Matched: '{m['keyword']}' → '{m['schema_element']}' ({m['score']}%)")
 
     print(f"Found {len(selected_matches)} relevant schema links:")
     for m in selected_matches:
         print(f"‘{m['keyword']}’ → {m['schema_element']}  ({m['score']}%)")
+
+    average_score = average([m['score'] for m in selected_matches])
+    selected_tables = [m['schema_element'] for m in selected_matches if m['schema_element'] in schema]
+
+    return average_score, selected_tables
+
+if __name__ == "__main__":
+    main()
+    
     
