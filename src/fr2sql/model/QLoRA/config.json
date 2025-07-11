@@ -1,0 +1,10 @@
+{
+    "model_name": "meta-llama/Llama-2-7b-hf",
+    "dataset": "yelp_review_full",
+    "lora_r": 8,
+    "lora_alpha": 16,
+    "lora_dropout": 0.05,
+    "max_length": 512,
+    "learning_rate": 2e-4,
+    "epochs": 1
+}

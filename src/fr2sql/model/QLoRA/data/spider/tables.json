@@ -1,0 +1,10 @@
+[
+  {
+    "db_id": "university",
+    "table_names_original": ["student", "grades"],
+    "column_names_original": [[-1, "*"], [0, "id"], [0, "name"], [1, "student_id"], [1, "grade"]],
+    "column_types": ["text", "number", "text", "number", "number"],
+    "primary_keys": [1],
+    "foreign_keys": [[1, 3]]
+  }
+]
