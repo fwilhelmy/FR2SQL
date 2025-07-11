@@ -10,7 +10,7 @@ from rapidfuzz import process, fuzz
 # Local import used only in the example section below.  When this module is
 # imported as part of the library, the relative path ensures it resolves
 # correctly.
-from .SchemaExtractor import SchemaExtractor
+from .DBManager import DBManager
 
 def fit_tfidf(corpus, ngram_range=(1, 3), language=['french']):
     """
@@ -108,7 +108,7 @@ def main():
         # … etc.
     ]
 
-    extractor = SchemaExtractor("data/sqlite/employee_db.sqlite")
+    db = DBManager("data/sqlite/employee_db.sqlite")
 
     # schema = [ # list of tables or columns in your database
     #     "employees", "departments", "projects", 
@@ -116,7 +116,7 @@ def main():
     #     "project_count", "department_name",
     # ]
 
-    schema = extractor.extract_column_table_pairs()
+    schema = db.extract_column_table_pairs()
 
     question = "Quel est le salaire moyen des employés par département ?"
     #question = "Quel est la cité de chaque département ?"
