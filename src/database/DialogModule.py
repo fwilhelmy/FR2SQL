@@ -1,13 +1,8 @@
 import os
 from typing import List
-
-from .SchemaQuestionLinker import (
-    fit_tfidf,
-    extract_candidates_yake,
-    rank_candidates_by_tfidf,
-    fuzzy_match_schema,
-)
-
+import yake
+from sklearn.feature_extraction.text import TfidfVectorizer
+from rapidfuzz import process, fuzz
 
 class DialogModule:
     """Interactive module linking user questions to database schema."""
@@ -32,11 +27,54 @@ class DialogModule:
         self.corpus.append(question)
         self._save_memory()
 
+    def fit_tfidf(self, ngram_range=(1, 3), language=['french']):
+        vec = TfidfVectorizer(ngram_range=ngram_range, stop_words=language)
+        vec.fit(self.corpus)
+        return vec
+
+    def extract_candidates_yake(self, question, max_kw=15, language='fr'):
+        kw_extractor = yake.KeywordExtractor(lan=language, top=max_kw)
+        raw = kw_extractor.extract_keywords(question)
+        # raw is [(phrase, score), ...], score=lower→better
+        return [phrase for phrase, _ in raw]
+
+    def rank_candidates_by_tfidf(self, candidates, vectorizer, top_n=8):
+        scored = []
+        analyzer = vectorizer.build_analyzer()
+        idf = vectorizer.idf_
+        vocab = vectorizer.vocabulary_
+        for phrase in candidates:
+            tokens = analyzer(phrase)
+            # collect IDF for tokens that exist in vocab
+            vals = [idf[vocab[t]] for t in tokens if t in vocab]
+            avg_idf = sum(vals) / len(vals) if vals else 0.0
+            scored.append((phrase, avg_idf))
+        # sort by score desc
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return [phrase for phrase, _ in scored[:top_n]]
+
+    def fuzzy_match_schema(self, keywords, schema_elements, cutoff=70):
+        matches = []
+        for kw in keywords:
+            result = process.extractOne(
+                kw, schema_elements,
+                scorer=fuzz.WRatio,
+                score_cutoff=cutoff
+            )
+            if result:
+                elem, score, _ = result
+                matches.append({
+                    'keyword': kw,
+                    'schema_element': elem,
+                    'score': score
+                })
+        return matches
+
     def schema_link(self, question: str):
-        tfidf = fit_tfidf(self.corpus)
-        candidates = extract_candidates_yake(question)
-        top_phrases = rank_candidates_by_tfidf(candidates, tfidf)
-        links = fuzzy_match_schema(top_phrases, self.schema_elements)
+        tfidf = self.fit_tfidf(self.corpus)
+        candidates = self.extract_candidates_yake(question)
+        top_phrases = self.rank_candidates_by_tfidf(candidates, tfidf)
+        links = self.fuzzy_match_schema(top_phrases, self.schema_elements)
         return links
 
     def ask(self) -> None:
@@ -55,7 +93,6 @@ class DialogModule:
             for m in links:
                 print(f"{m['keyword']} -> {m['schema_element']} ({m['score']}%)")
             self.add_to_memory(question)
-
 
 if __name__ == "__main__":
     example_schema = ["employees", "departments"]
