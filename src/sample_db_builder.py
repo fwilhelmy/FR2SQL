@@ -4,10 +4,10 @@ import os
 
 def build_sample_db(db_path="employee_db.sqlite"):
     # Ensure directory exists
-    if not os.path.exists("data/sqlite"):
-        os.makedirs("data/sqlite")
+    if not os.path.exists("database/sqlite"):
+        os.makedirs("database/sqlite")
 
-    conn = sqlite3.connect(os.path.join("data/sqlite", db_path))
+    conn = sqlite3.connect(os.path.join("database/sqlite", db_path))
     cursor = conn.cursor()
 
     # Drop existing tables if they exist
@@ -143,7 +143,7 @@ def build_sample_db(db_path="employee_db.sqlite"):
 
     conn.commit()
     conn.close()
-    print("✔ Base de données créée avec succès : data/sqlite/employee_db.sqlite")
+    print("✔ Base de données créée avec succès : database/sqlite/employee_db.sqlite")
 
 
 if __name__ == "__main__":

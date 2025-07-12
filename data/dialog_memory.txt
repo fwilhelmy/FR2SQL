@@ -1,0 +1,4 @@
+montre-moi le salaire moyen par département
+liste des employés embauchés après 2015
+nombre total de projets par manager
+Quel est le salaire moyen des employés par département ?
