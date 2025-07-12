@@ -5,7 +5,7 @@ from typing import List, Dict
 
 from database.DBManager import DBManager
 from database.SchemaQuestionLinker import schema_link, TRESHOLD
-from pipeline.ContextGenerator import generate_llm_context
+from agent.PromptGenerator import generate_llm_context
 
 
 DB_PATH = "data/sqlite/employee_db.sqlite"
