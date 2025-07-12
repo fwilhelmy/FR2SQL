@@ -1,29 +1,20 @@
-"""Simple interactive pipeline linking natural language questions to a SQL
-schema and producing a prompt for the future LLM agent."""
+"""Interactive demo pipeline linking natural language questions to a SQL
+schema using ``DialogModule`` and producing a prompt for the future LLM agent."""
 
 from typing import List, Dict
 
 from database.DBManager import DBManager
-from database.SchemaQuestionLinker import schema_link, TRESHOLD
+from database.SchemaQuestionLinker import TRESHOLD
 from agent.PromptGenerator import generate_llm_context
 
 
 DB_PATH = "data/sqlite/employee_db.sqlite"
+# File storing past user questions for the DialogModule
+MEMORY_FILE = "logs/dialog_memory.txt"
 # Threshold used to decide whether we are confident enough in the
 # schema linking step.  This is separate from the TRESHOLD constant of
 # the linker which filters individual matches.
 CONFIDENCE_THRESHOLD = 75
-
-
-def ask_question() -> str:
-    """Prompt the user for a question in natural language."""
-    return input("Question: ").strip()
-
-
-def ask_clarification() -> str:
-    """Request a clarification from the user when confidence is low."""
-    return input("Clarification: ").strip()
-
 
 def generate_sql(_prompt: str) -> str:
     """Placeholder for the NL2SQL model call."""
@@ -51,9 +42,7 @@ def compute_average(scores: List[float]) -> float:
 
 def main() -> None:
     """Run the end‑to‑end demo pipeline."""
-
-    question = ask_question()
-
+    
     db = DBManager(DB_PATH)
     schema_pairs: Dict[str, List[str]] = db.extract_column_table_pairs()
 
@@ -62,15 +51,14 @@ def main() -> None:
         f"{col} {table}" for table, cols in schema_pairs.items() for col in cols
     ]
 
-    # Example corpus of previous user requests.  In a real system this would be
-    # replaced with stored logs or documentation.
-    corpus = [
-        "montre-moi le salaire moyen par département",
-        "liste des employés embauchés après 2015",
-        "nombre total de projets par manager",
-    ]
-    # Afficher le total des ventes par ville pour l'année 2023.
-    matches = schema_link(question, corpus, schema_elements)
+    # Initialize the dialog helper which keeps a history of past questions
+    dialog = DialogModule(schema_elements, MEMORY_FILE)
+
+    # Ask the user for a new question
+    question = dialog.ask_question()
+
+    # Link the user's request to the database schema
+    matches = dialog.schema_link(question)
     matches.sort(key=lambda m: m["score"], reverse=True)
 
     selected = []
@@ -91,7 +79,10 @@ def main() -> None:
 
     if avg_score < CONFIDENCE_THRESHOLD:
         # Confidence too low → ask for clarification
-        question += " " + ask_clarification()
+        question += " " + dialog.ask_clarification(attempt=2)
+
+    # Save the (possibly clarified) question for future runs
+    dialog.add_to_memory(question)
 
     # Determine which tables were referenced
     table_metadata = {t: db.extract_table_metadata(t) for t in selected_tables}
