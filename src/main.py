@@ -1,15 +1,15 @@
 """Interactive demo pipeline linking natural language questions to a SQL
 schema using ``DialogModule`` and producing a prompt for the future LLM agent."""
 
+import os
 from typing import List, Dict
 
 from DBManager import DBManager
 from DialogModule import DialogModule
 from agent.PromptGenerator import generate_sql_prompt
 
-DB_PATH = "database/sqlite/employee_db.sqlite"
-# File storing past user questions for the DialogModule
-MEMORY_FILE = "data/dialog_memory.txt"
+DB_PATH = "databases/spider/test_database/bakery_1/bakery_1.sqlite"
+
 # Threshold used to decide whether we are confident enough in the
 # schema linking step.  This is separate from the TRESHOLD constant of
 # the linker which filters individual matches.
@@ -31,8 +31,10 @@ def main() -> None:
         f"{col} {table}" for table, cols in schema_pairs.items() for col in cols
     ]
 
+    # File storing past user questions for the DialogModule
+    mem = os.path.join(DB_PATH.rsplit("/",1)[0], "dialog_memory.txt")
     # Initialize the dialog helper which keeps a history of past questions
-    dialog = DialogModule(schema_elements, MEMORY_FILE)
+    dialog = DialogModule(schema_elements, mem)
 
     # Ask the user for a new question
     question = dialog.ask()
