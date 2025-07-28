@@ -25,8 +25,11 @@ class DialogModule:
                 f.write(q + "\n")
 
     def add_to_memory(self, question: str) -> None:
-        self.memory.append(question)
-        self._save_memory()
+        q = question.strip()
+        lower_memory = [m.lower() for m in self.memory]
+        if q.lower() not in lower_memory:
+            self.memory.append(q)
+            self._save_memory()
 
     def fit_tfidf(self, ngram_range=(1, 3), language=['french']):
         vec = TfidfVectorizer(ngram_range=ngram_range, stop_words=language)
