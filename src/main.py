@@ -47,10 +47,10 @@ def main() -> None:
     ]
 
     # File storing past user questions for the DialogModule
-    mem = os.path.join(DB_PATH.rsplit("/",1)[0], "dialog_memory.txt")
+    mem = os.path.join(db_path.rsplit("/",1)[0], "dialog_memory.txt")
     # Initialize the dialog helper which keeps a history of past questions
     dialog = DialogModule(schema_elements, mem)
-    agent = SimpleAgent() if auto_mode else None
+    agent = SimpleAgent()
 
     while True:
         # Ask the user for a new question
@@ -100,21 +100,15 @@ def main() -> None:
 
         print("\n[LLM PROMPT]\n" + prompt + "\n")
 
-        if auto_mode:
-            try:
-                generated_sql = agent.generate(schema_for_prompt, question, db_type="sqlite")
-                print("[GENERATED SQL]\n" + generated_sql + "\n")
-            except Exception as exc:
-                print(f"Error generating SQL: {exc}")
-                continue
-            user_sql = input("Press Enter to run the generated query or paste another SQL:\nSQL> ").strip()
-            if not user_sql:
-                user_sql = generated_sql
-        else:
-            user_sql = input("SQL> ").strip()
-            if not user_sql:
-                print("No SQL provided, skipping.")
-                continue
+        try:
+            generated_sql = agent.generate(schema_for_prompt, question, db_type="sqlite")
+            print("[GENERATED SQL]\n" + generated_sql + "\n")
+        except Exception as exc:
+            print(f"Error generating SQL: {exc}")
+            continue
+        user_sql = input("Press Enter to run the generated query or paste another SQL:\nSQL> ").strip()
+        if not user_sql:
+            user_sql = generated_sql
 
         # Basic validation of the SQL statement
         if not sqlite3.complete_statement(user_sql):
