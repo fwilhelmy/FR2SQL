@@ -2,6 +2,7 @@
 schema using ``DialogModule`` and producing a prompt for the future LLM agent."""
 
 from typing import List, Dict
+import sqlite3
 
 from DBManager import DBManager
 from DialogModule import DialogModule
@@ -80,7 +81,27 @@ def main() -> None:
     # TODO: integrate the actual LLM call here
     print("\n[LLM PROMPT]\n" + prompt + "\n")
 
-    # TODO Test and execute the generated SQL query
+    # Ask the user to enter the SQL query produced by the LLM
+    user_sql = input("Enter the SQL query to execute:\nSQL> ").strip()
+
+    # Basic validation of the SQL statement
+    if not sqlite3.complete_statement(user_sql):
+        print("Invalid or incomplete SQL statement.")
+    else:
+        try:
+            result = db.execute_query(user_sql)
+            if "columns" in result:
+                header = " | ".join(result["columns"])
+                print(header)
+                print("-" * len(header))
+                for row in result["rows"]:
+                    print(" | ".join(str(v) for v in row))
+            else:
+                print(f"Rows affected: {result['rowcount']}")
+        except Exception as exc:
+            print(f"Error executing query: {exc}")
+
+    db.close()
 
 if __name__ == "__main__":
     main()
