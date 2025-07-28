@@ -7,4 +7,5 @@ picard
 pytorch-lightning
 torch
 transformers
-
+tiktoken
+blobfile

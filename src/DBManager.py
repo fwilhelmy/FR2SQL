@@ -10,9 +10,6 @@ class DBManager:
         self.conn = sqlite3.connect(self.db_path)
         self.cursor = self.conn.cursor()
 
-    # ------------------------------------------------------------------
-    # Schema extraction utilities (from former SchemaExtractor)
-    # ------------------------------------------------------------------
     def extract_column_table_pairs(self) -> Dict[str, List[str]]:
         """Return a mapping of table names to their column names."""
         result: Dict[str, List[str]] = {}
@@ -54,9 +51,6 @@ class DBManager:
             for fk in self.cursor.fetchall()
         ]
 
-    # ------------------------------------------------------------------
-    # Query execution helpers
-    # ------------------------------------------------------------------
     def execute_query(self, query: str, params: Optional[Tuple[Any, ...]] = None) -> Any:
         """Execute a SQL query and return results or affected row count."""
         if params is None:
