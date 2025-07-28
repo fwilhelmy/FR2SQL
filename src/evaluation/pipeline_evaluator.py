@@ -1,6 +1,8 @@
 import json
 import os
 from typing import List, Dict
+import subprocess
+import sys
 
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -42,8 +44,9 @@ def build_dialog(schema: Dict[str, List[str]]) -> DialogModule:
     return DialogModule(schema_elements)
 
 
-def generate_sql(question: str, schema: Dict[str, List[str]], dialog: DialogModule,
-                 model, tokenizer) -> str:
+def generate_sql(
+    question: str, schema: Dict[str, List[str]], dialog: DialogModule, model, tokenizer
+) -> str:
     matches = dialog.schema_link(question)
     matches.sort(key=lambda m: m["score"], reverse=True)
 
@@ -74,12 +77,51 @@ def generate_sql(question: str, schema: Dict[str, List[str]], dialog: DialogModu
     return tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
 
 
-def evaluate_dataset(dataset_path: str,
-                      model_dir: str = MODEL_DIR,
-                      db_root: str = DB_ROOT,
-                      pred_file: str = "pred.txt",
-                      label_file: str = "labels.txt",
-                      result_file: str = "eval_result.txt") -> float:
+def run_test_suite_eval(
+    gold_file: str, pred_file: str, db_root: str, table_file: str = "tables.json"
+) -> None:
+    """Run the test-suite-sql-eval script if available.
+
+    Parameters mirror the CLI described in https://github.com/taoyds/test-suite-sql-eval
+    and assume that the evaluation script is located in ``test-suite-sql-eval/evaluation.py``
+    relative to the repository root.
+    """
+    eval_script = os.path.join("test-suite-sql-eval", "evaluation.py")
+    if not os.path.exists(eval_script):
+        print(f"Test suite evaluation script not found at {eval_script}.")
+        return
+
+    cmd = [
+        sys.executable,
+        eval_script,
+        "--gold",
+        gold_file,
+        "--pred",
+        pred_file,
+        "--db",
+        db_root,
+        "--table",
+        table_file,
+        "--etype",
+        "exec",
+        "--plug_value",
+    ]
+
+    try:
+        completed = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        print(completed.stdout)
+    except Exception as exc:
+        print(f"Failed to run test suite evaluation: {exc}")
+
+
+def evaluate_dataset(
+    dataset_path: str,
+    model_dir: str = MODEL_DIR,
+    db_root: str = DB_ROOT,
+    pred_file: str = "pred.txt",
+    label_file: str = "labels.txt",
+    result_file: str = "eval_result.txt",
+) -> float:
     """Evaluate the model on a Spider‑FR style dataset.
 
     This function now also writes three artefacts:
@@ -133,6 +175,10 @@ def evaluate_dataset(dataset_path: str,
         rf.write(result_line + "\n")
 
     print(result_line)
+
+    # Run the official test suite evaluation if available
+    run_test_suite_eval(label_file, pred_file, db_root)
+
     return accuracy
 
 
@@ -142,10 +188,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate SQL generation model")
     parser.add_argument("dataset", help="Path to Spider-FR JSON dataset")
     parser.add_argument("--model", default=MODEL_DIR, help="Model directory")
-    parser.add_argument("--db-root", default=DB_ROOT, help="Root directory of test databases")
-    parser.add_argument("--pred-file", default="pred.txt", help="File to write predictions")
-    parser.add_argument("--label-file", default="labels.txt", help="File to write gold labels")
-    parser.add_argument("--result-file", default="eval_result.txt", help="File to write evaluation result")
+    parser.add_argument(
+        "--db-root", default=DB_ROOT, help="Root directory of test databases"
+    )
+    parser.add_argument(
+        "--pred-file", default="pred.txt", help="File to write predictions"
+    )
+    parser.add_argument(
+        "--label-file", default="labels.txt", help="File to write gold labels"
+    )
+    parser.add_argument(
+        "--result-file",
+        default="eval_result.txt",
+        help="File to write evaluation result",
+    )
     args = parser.parse_args()
 
     evaluate_dataset(
