@@ -51,7 +51,6 @@ training_args = TrainingArguments(
     logging_dir="./logs",
     save_total_limit=2,
     save_steps=500,
-    evaluation_strategy="epoch",
 )
 
 trainer = Trainer(

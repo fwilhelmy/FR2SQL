@@ -1,5 +1,4 @@
 import json
-import os
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 
@@ -11,8 +10,8 @@ class SpiderFRDataset(Dataset):
         with open("./data/spider-fr/train_spider.json", "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        questions = [rec["question"] for rec in data]
-        queries = [rec["query"] for rec in data]
+            questions = [rec["question"] for rec in data]
+            queries = [rec["query"] for rec in data]
 
         tokenizer = AutoTokenizer.from_pretrained(
             "google/mt5-small",
