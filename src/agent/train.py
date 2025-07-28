@@ -1,7 +1,7 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer
 from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model
 import torch
-
+from torch.utils.data import random_split
 from .SpiderFRDataset import SpiderFRDataset
 
 model_name = "meta-llama/Llama-2-7b-hf"  # Change as needed
@@ -33,11 +33,12 @@ lora_config = LoraConfig(
 model = get_peft_model(model, lora_config)
 
 # Load and tokenize dataset
-train_dataset = SpiderFRDataset(
-    data_dir="./data/spider-fr",
-    split="train",
-    tokenizer=tokenizer,
-)
+full_dataset = SpiderFRDataset()
+
+# Split into train/validation subsets
+val_size = int(0.1 * len(full_dataset))
+train_size = len(full_dataset) - val_size
+train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
 
 # Training
 training_args = TrainingArguments(
@@ -50,13 +51,14 @@ training_args = TrainingArguments(
     logging_dir="./logs",
     save_total_limit=2,
     save_steps=500,
+    evaluation_strategy="epoch",
 )
 
 trainer = Trainer(
     model=model,
     args=training_args,
     train_dataset=train_dataset,
-    tokenizer=tokenizer,
+    eval_dataset=val_dataset,
 )
 
 trainer.train()
