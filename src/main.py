@@ -7,6 +7,7 @@ import sqlite3
 from DBManager import DBManager
 from DialogModule import DialogModule
 from agent.PromptGenerator import generate_sql_prompt
+from agent.SimpleAgent import SimpleAgent
 
 DB_PATH = "database/sqlite/employee_db.sqlite"
 # File storing past user questions for the DialogModule
@@ -78,11 +79,20 @@ def main() -> None:
 
     prompt = generate_sql_prompt(schema_for_prompt, question, db_type="sqlite")
 
-    # TODO: integrate the actual LLM call here
+    agent = SimpleAgent()
     print("\n[LLM PROMPT]\n" + prompt + "\n")
 
-    # Ask the user to enter the SQL query produced by the LLM
-    user_sql = input("Enter the SQL query to execute:\nSQL> ").strip()
+    try:
+        generated_sql = agent.generate(schema_for_prompt, question, db_type="sqlite")
+        print("[GENERATED SQL]\n" + generated_sql + "\n")
+    except Exception as exc:
+        print(f"Error generating SQL: {exc}")
+        db.close()
+        return
+
+    user_sql = input("Press Enter to run the generated query or paste another SQL:\nSQL> ").strip()
+    if not user_sql:
+        user_sql = generated_sql
 
     # Basic validation of the SQL statement
     if not sqlite3.complete_statement(user_sql):
