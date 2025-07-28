@@ -69,11 +69,13 @@ class DBManager:
         self.conn.close()
 
 if __name__ == "__main__":
-    db_path = "databases/spider/database/academic/academic.sqlite"
+    db_path = "databases/spider/test_database/bakery_1/bakery_1.sqlite"
     assert os.path.exists(db_path), f"Database file {db_path} does not exist."
     db = DBManager(db_path)
     print(f"✅ Connected to {db_path!r}")
     tables = db.extract_column_table_pairs()
-    print("Tables found:", list(tables.keys()))
+    print("Tables and their columns:")
+    for table, columns in tables.items():
+        print(f"  {table}: {', '.join(columns)}")
     db.close()
     print("Connection closed.")
