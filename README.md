@@ -50,13 +50,17 @@ This uses `database/sqlite/employee_db.sqlite` and stores past queries in `data/
 
 ### Evaluation
 
-Evaluate a trained model on a Spider‑FR style dataset:
+Evaluate a trained model on a Spider‑FR style dataset. In addition to exact
+match, the script will attempt to run the official
+[test-suite-sql-eval](https://github.com/taoyds/test-suite-sql-eval) evaluation
+if the repository is present under ``test-suite-sql-eval/``:
 
 ```bash
 python src/evaluation/pipeline_evaluator.py data/spider-fr/dev_spider.json --model adapters --db-root databases/spider/test_database
 ```
-
-The script writes the predictions and an accuracy report in the current directory.
+The script writes the predictions and an accuracy report in the current directory
+and, when the test-suite repo is available, prints the Test Suite execution
+accuracy.
 
 ## Future Work
 
