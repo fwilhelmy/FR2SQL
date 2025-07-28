@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from typing import List, Dict, Any, Optional, Tuple
 
@@ -66,3 +67,13 @@ class DBManager:
 
     def close(self) -> None:
         self.conn.close()
+
+if __name__ == "__main__":
+    db_path = "databases/spider/database/academic/academic.sqlite"
+    assert os.path.exists(db_path), f"Database file {db_path} does not exist."
+    db = DBManager(db_path)
+    print(f"✅ Connected to {db_path!r}")
+    tables = db.extract_column_table_pairs()
+    print("Tables found:", list(tables.keys()))
+    db.close()
+    print("Connection closed.")

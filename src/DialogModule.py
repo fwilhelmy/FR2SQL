@@ -95,10 +95,3 @@ class DialogModule:
                 print(f"{m['keyword']} -> {m['schema_element']} ({m['score']}%)")
             self.add_to_memory(question)
             attempt += 1
-
-if __name__ == "__main__":
-    example_schema = ["employees", "departments"]
-    module = DialogModule(example_schema, "data/dialog_memory.txt")
-    module.add_to_memory("montre-moi le salaire moyen par département")
-    module.add_to_memory("liste des employés embauchés après 2015")
-    module.add_to_memory("nombre total de projets par manager")
