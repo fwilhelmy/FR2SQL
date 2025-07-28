@@ -1,0 +1,207 @@
+\documentclass[12pt]{article}
+\usepackage[french]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{enumerate}
+\usepackage{amsmath, amssymb}
+\usepackage{bm}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{cancel}
+\usepackage{makecell}
+\usepackage{braket}
+\usepackage{multirow}
+\usepackage{minted}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+
+{\LARGE Proposition de Projet - MTI820\par}
+\vspace{1ex}
+{\Large \textbf{FR2SQL~} \\
+Génération de requêtes SQL à partir d'un langage naturel en français\par}
+\vspace{3cm}
+
+\setlength{\tabcolsep}{12pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} p{0.32\textwidth}
+p{0.32\textwidth}
+p{0.32\textwidth} }
+\centering\textbf{WILHELMY Felix}\\
+Département de génie LOG \& TI\\
+ÉTS, Montréal, Canada\\
+\texttt{WILF15099506}
+&
+\centering\textbf{NOUBISSI KOM Carmen Wilfred}\\
+Département de génie LOG \& TI\\
+ÉTS, Montréal, Canada\\
+\texttt{NOUC20329101}
+&
+\centering\textbf{LAAZIRI Othman}\\
+Département de génie LOG \& TI\\
+ÉTS, Montréal, Canada\\
+\texttt{LAAO82010107}
+\end{tabular*}
+\vfill
+\end{titlepage}
+
+\section{Problématique}
+
+Les organisations, afin de permettre aux utilisateurs non-experts en base de données d'interagir de manière intuitive avec celle-ci, s’appuient de plus en plus sur des interfaces conversationnelles. Le succès de ces systèmes dépend fortement de la qualité du composant NL2SQL (Natural Language to SQL). Malgré les progrès récents, la littérature reste dominée par des approches anglophones et peu adaptées au français ainsi qu’aux environnements BI. Ce travail consiste à développer un système capable de comprendre et de traduire efficacement une requête formulée en langage naturel en une requête SQL précise et exécutable, tout en gérant la diversité des expressions, des ambiguïtés et des contextes afin de rendre l’accès aux données plus accessible et plus fluide pour tous les utilisateurs et particulièrement ceux qui parlent français.
+
+\paragraph{Objectif} Notre projet vise donc à concevoir un outil francophone qui
+\begin{itemize}
+\item facilite l’accès aux données analytiques pour des utilisateurs non techniques;
+\item accélère l’extraction d’informations pertinentes à partir de requêtes en langage naturel;
+\item maximise la valeur tirée des données disponibles au sein de l’organisation.
+\end{itemize}
+
+\section{Méthodologie}
+
+\subsection{Architecture générale}
+L’architecture du système repose sur un pipeline modulaire implémenté en \textbf{Python} à l’aide de la bibliothèque \texttt{PyTorch Lightning}, qui facilite la structuration et la reproductibilité des boucles d’apprentissage. Le modèle de base est \textbf{LLaMA 3 Instruct‑8B}, un grand modèle de langage (LLM) open‑source de 8 milliards de paramètres pré‑entraîné pour suivre des instructions. Afin de rendre l'entraînement réalisable sur les ressources à notre disposition, le modèle sera quantifié (\textit{quantized}) en \textbf{4 bits} à l’aide de la bibliothèque \texttt{BitsAndBytes}, puis \textit{fine-tune} selon la méthode \textbf{QLoRA} (Quantized Low-Rank Adapter)~\cite{dettmers2023qlora}.
+
+\subsection{Préparation des données (Semaine 7 \& 8)}
+Le jeu de données pour l'entrainement sera \textsc{Spider-FR}, une version traduite en français de Spider~\cite{yu2019spider}, qui contient des paires (question naturelle, requête SQL) sur des schémas de bases relationnelles complexes.
+
+Chaque entrée de notre système aura la structure suivante :
+
+\begin{minted}[linenos, fontsize=\small]{json}
+{
+  "question_fr": "Quelle est la moyenne des salaires des employés ?",
+  "sql": "SELECT AVG(salary) FROM employees",
+  "db_id": "employee_db"
+}
+\end{minted}
+
+Un module de chargement dédié aligne ces questions à leur schéma relationnel (fichier SQLite) pour l'encodage.
+
+\subsection{Entraînement du modèle (Semaine 9 \& 10)}
+L’objectif est d’apprendre au modèle à générer une requête SQL correcte à partir d’une question formulée en français, en tenant compte du schéma de la base de données concernée. Pour cela, nous utilisons la méthode \texttt{QLoRA} (Quantized Low-Rank Adapter), une approche d’affinage efficace qui n’ajuste qu’un sous-ensemble restreint des paramètres du modèle pré-entraîné. Cette méthode combine :
+\begin{itemize}
+  \item une quantification \textbf{4 bits} via la bibliothèque \texttt{BitsAndBytes}, permettant de réduire considérablement l’utilisation mémoire tout en préservant la performance;
+  \item un entraînement structuré à l’aide de \texttt{PyTorch Lightning}, facilitant la gestion des boucles d’apprentissage, du suivi expérimental et de la reproductibilité.
+\end{itemize}
+
+
+\subsection{Évaluation et métriques (Semaine 11)}
+La qualité du modèle est évaluée avec quatre métriques principales, standard dans la littérature NL2SQL :
+\begin{itemize}
+  \item \textbf{Execution Accuracy} : pourcentage de requêtes générées produisant le même résultat que la requête cible sur la base;
+  \item \textbf{Exact Match} : taux de correspondance exacte entre la requête prédite et celle attendue (au niveau chaîne de caractères);
+  \item \textbf{Valid SQL Rate} : proportion de requêtes valides (syntaxiquement exécutables);
+  \item \textbf{VES} (Valid Efficiency Score) : indicateur composite qui pénalise les erreurs syntaxiques, les lenteurs et les requêtes inefficaces.
+\end{itemize}
+
+\subsubsection{Outils d'evaluations}
+
+L’évaluation sera probablement automatisée via script proposé par \cite{yu2019spider} :
+\begin{center}
+\url{https://github.com/taoyds/test-suite-sql-eval}
+\end{center}
+
+Nous utiliserons également PICARD (Parsing Incrementally-Constrained Autoregressive Decoder) pour contraindre la génération au sein de la grammaire SQL, garantissant que les requêtes produites sont valides dès la phase de décodage.
+
+\subsection{Infrastructure de déploiement et d'entraînement}
+Les expérimentations sont réalisées sur deux plateformes :
+\begin{itemize}
+  \item \textbf{Google Colab Pro+} : pour les itérations rapides, l’entraînement LoRA sur GPU T4/A100;
+  \item \textbf{Postes personnels} : pour la préparation des données, la validation, l’export de modèles, et les tests légers.
+\end{itemize}
+
+\clearpage\newpage
+\section{Calendrier de Planification}
+Table~\ref{tab:plan} présente les jalons prévus pour la session.
+\begin{table}[h!]
+  \caption{Calendrier Prévisionnel du Projet}
+  \label{tab:plan}
+  \centering
+  \begin{tabular}{|p{2cm}|p{13cm}|}
+    \hline
+    \textbf{Semaine} & \textbf{Tâches} \\ \hline
+    6 & 
+      Remise de la proposition de projet [Tous] 
+      \newline
+      Configuration de l'environment de developpement [Tous] 
+      \newline
+      Configuration du repositoire github pour le projet [Felix]
+      \\ \hline
+    7 \& 8 & 
+      Implémentation d’un lien schéma-question (extraire les mots clee des demande language naturel) [Felix]
+      \newline
+      Extraction et introspection des schémas (SQLite) (avec les liens, extraire les schema des tables de la base de donnees pertinant a la requete) [Othman]
+      \newline
+      Générateur de contexte pour LLM (a partir des schema de table et de la requete de l'utilisateur) [Wilfred]
+      \\ \hline
+    9 \& 10 & 
+      Mise en place du pipeline de fine-tuning QLoRA pour notre model [Wilfred]
+      \newline
+      Script de logging + tracking [Othman]
+      \newline
+      Chargement LLaMA-3 Instruct-8B (4-bit) et fine-tuning sur Google Colab [Felix]
+      \\ \hline
+    11 & 
+      Intégration de PICARD dans le pipeline [Wilfred] \newline
+      Integration des batteries de tests et d'evaluation du model [Felix] \newline
+      Debut de redaction du rapport [Othman]
+      \\ \hline
+    12 & 
+      Analyse \& visualisation des resultats [Felix] \newline
+      Rédaction du rapport final (méthodologie, figures, tableaux de métriques) [Tous] \newline
+      Création des slides et preparation pour l’oral [Wilfred \& Othman]
+      \\ \hline
+  \end{tabular}
+\end{table}
+
+\newpage
+
+\section{Structure Prévisionnelle du Rapport Final}
+\begin{enumerate}
+  \item Résumé
+  \item Introduction
+  \item Problématique
+  \item Objectifs
+  \item Analyse des besoins
+  \item Modèle dimensionnel et sources de données
+    \begin{enumerate}
+      \item Modèle dimensionnel adapté
+      \item Description de Spider-FR et des données internes Forester
+    \end{enumerate}
+  \item Architecture de la solution
+    \begin{enumerate}
+      \item Plan d’architecture haut niveau
+      \item Description des technologies employées (PyTorch Lightning, QLoRA, PICARD, etc.)
+    \end{enumerate}
+  \item Méthodologie détaillée
+    \begin{enumerate}
+      \item Pipeline modulaire et prétraitement
+      \item Entraînement et configuration (hyperparamètres, quantification)
+      \item Évaluation et métriques (Execution Accuracy, Exact Match, Valid SQL Rate, VES)
+    \end{enumerate}
+  \item Résultats et analyse
+    \begin{enumerate}
+      \item Résultats globaux
+      \item Analyse par schéma et tests multilingues
+      \item Impact des stratégies de post-traitement (PICARD)
+    \end{enumerate}
+  \item Discussion
+    \begin{enumerate}
+      \item Points forts et points faibles de la preuve de concept
+      \item Limites et améliorations possibles
+      \item Perspectives d’intégration en environnement BI réel
+    \end{enumerate}
+  \item Conclusion
+\end{enumerate}
+
+\nocite{busany2024autobir,jiang2024siriusbi,liu2025nl2sqlsurvey,minaee2025llmsurvey,vaswani2023attentionneed,yu2019spider}
+
+\bibliographystyle{IEEEtran}
+\bibliography{biblio}
+
+\end{document}
