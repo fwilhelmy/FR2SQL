@@ -76,8 +76,18 @@ def generate_sql(question: str, schema: Dict[str, List[str]], dialog: DialogModu
 
 def evaluate_dataset(dataset_path: str,
                       model_dir: str = MODEL_DIR,
-                      db_root: str = DB_ROOT) -> float:
-    """Evaluate the model on a Spider‑FR style dataset."""
+                      db_root: str = DB_ROOT,
+                      pred_file: str = "pred.txt",
+                      label_file: str = "labels.txt",
+                      result_file: str = "eval_result.txt") -> float:
+    """Evaluate the model on a Spider‑FR style dataset.
+
+    This function now also writes three artefacts:
+      * ``label_file`` – SQL labels for each datapoint.
+      * ``pred_file`` – predicted SQL queries in the same order.
+      * ``result_file`` – summary of the evaluation (currently the exact match
+        accuracy).
+    """
     with open(dataset_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -89,6 +99,8 @@ def evaluate_dataset(dataset_path: str,
 
     total = len(data)
     correct = 0
+    predictions: List[str] = []
+    labels: List[str] = []
 
     for rec in data:
         question = rec["question"]
@@ -102,11 +114,25 @@ def evaluate_dataset(dataset_path: str,
         schema = schema_cache[db_id]
         dialog = dialog_cache[db_id]
         predicted = generate_sql(question, schema, dialog, model, tokenizer)
+
+        predictions.append(predicted)
+        labels.append(expected)
+
         if normalize_sql(predicted) == normalize_sql(expected):
             correct += 1
 
     accuracy = correct / total if total else 0.0
-    print(f"Exact match accuracy: {accuracy:.2%} ({correct}/{total})")
+    result_line = f"Exact match accuracy: {accuracy:.2%} ({correct}/{total})"
+
+    # Write artefacts
+    with open(pred_file, "w", encoding="utf-8") as pf:
+        pf.write("\n".join(predictions))
+    with open(label_file, "w", encoding="utf-8") as lf:
+        lf.write("\n".join(labels))
+    with open(result_file, "w", encoding="utf-8") as rf:
+        rf.write(result_line + "\n")
+
+    print(result_line)
     return accuracy
 
 
@@ -117,6 +143,16 @@ if __name__ == "__main__":
     parser.add_argument("dataset", help="Path to Spider-FR JSON dataset")
     parser.add_argument("--model", default=MODEL_DIR, help="Model directory")
     parser.add_argument("--db-root", default=DB_ROOT, help="Root directory of test databases")
+    parser.add_argument("--pred-file", default="pred.txt", help="File to write predictions")
+    parser.add_argument("--label-file", default="labels.txt", help="File to write gold labels")
+    parser.add_argument("--result-file", default="eval_result.txt", help="File to write evaluation result")
     args = parser.parse_args()
 
-    evaluate_dataset(args.dataset, args.model, args.db_root)
+    evaluate_dataset(
+        args.dataset,
+        args.model,
+        args.db_root,
+        pred_file=args.pred_file,
+        label_file=args.label_file,
+        result_file=args.result_file,
+    )
