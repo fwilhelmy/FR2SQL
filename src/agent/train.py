@@ -1,10 +1,10 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer
 from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model
-from datasets import load_dataset
 import torch
 
+from .SpiderFRDataset import SpiderFRDataset
+
 model_name = "meta-llama/Llama-2-7b-hf"  # Change as needed
-dataset_name = "yelp_review_full"  # Example dataset
 
 # Load model and tokenizer
 tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
@@ -33,10 +33,11 @@ lora_config = LoraConfig(
 model = get_peft_model(model, lora_config)
 
 # Load and tokenize dataset
-dataset = load_dataset(dataset_name)
-def tokenize_function(example):
-    return tokenizer(example["text"], truncation=True, padding="max_length", max_length=512)
-tokenized_dataset = dataset.map(tokenize_function, batched=True)
+train_dataset = SpiderFRDataset(
+    data_dir="./data/spider-fr",
+    split="train",
+    tokenizer=tokenizer,
+)
 
 # Training
 training_args = TrainingArguments(
@@ -54,7 +55,7 @@ training_args = TrainingArguments(
 trainer = Trainer(
     model=model,
     args=training_args,
-    train_dataset=tokenized_dataset["train"],
+    train_dataset=train_dataset,
     tokenizer=tokenizer,
 )
 
