@@ -1,7 +1,6 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer
 from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model
 import torch
-
 from torch.utils.data import random_split
 from .SpiderFRDataset import SpiderFRDataset
 
@@ -60,7 +59,6 @@ trainer = Trainer(
     args=training_args,
     train_dataset=train_dataset,
     eval_dataset=val_dataset,
-    tokenizer=tokenizer,
 )
 
 trainer.train()

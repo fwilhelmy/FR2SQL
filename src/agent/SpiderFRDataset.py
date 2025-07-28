@@ -1,7 +1,7 @@
 import json
+import os
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
-
 
 class SpiderFRDataset(Dataset):
     """Hardcoded loader for the Spider-FR training split."""
