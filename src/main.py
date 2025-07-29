@@ -10,7 +10,7 @@ import pyperclip
 from DBManager import DBManager
 from DialogModule import DialogModule
 from agent.PromptGenerator import generate_sql_prompt
-from agent import FlanT5, LLaMA2
+from agent import SimpleAgent
 
 # Base path where Spider test databases are stored
 DB_BASE_PATH = "databases/spider/test_database"
@@ -19,7 +19,6 @@ DB_BASE_PATH = "databases/spider/test_database"
 # schema linking step. This is separate from the TRESHOLD constant of
 # the linker which filters individual matches.
 CONFIDENCE_THRESHOLD = 80
-models = ["FlanT5-Base", "FlanT5-Large", "LLaMA2", "ChatGPT"]
 
 def compute_average(scores: List[float]) -> float:
     return sum(scores) / len(scores) if scores else 0.0
@@ -27,17 +26,16 @@ def compute_average(scores: List[float]) -> float:
 def main() -> None:
     """Run the end‑to‑end demo pipeline."""
 
-    agent_id = input("Enter the agent ID ['ChatGPT', 'FlanT5-Base', 'FlanT5-Large', 'LLaMA2']: ").strip().lower()
-    if agent_id == "chatgpt": agent = None
-    elif agent_id == "flant5-base": agent = FlanT5("google/flan-t5-base")
-    elif agent_id == "flant5-large": agent = FlanT5("google/flan-t5-large")
-    elif agent_id == "llama2": agent = LLaMA2()
+    mode = input("Enter the agent ID [Manual, (FlanT5)]: ").strip().lower() or "flant5"
+    if mode == "manual": agent = None
+    elif mode == "flant5": agent = SimpleAgent()
     else:
-        print(f"Unknown agent ID '{agent_id}'. Available options: {models}.")
+        print(f"Unknown command: {mode}")
+        print("Available options: Manual, FlanT5")
         return
 
 
-    db_id = input("Enter the database ID: ").strip()
+    db_id = input("Enter the database ID [aircraft]: ").strip() or 'aircraft'
     db_path = os.path.join(DB_BASE_PATH, db_id, f"{db_id}.sqlite")
     if not os.path.exists(db_path):
         print(f"Database '{db_path}' not found.")
@@ -84,21 +82,23 @@ def main() -> None:
             # Confidence too low → ask for clarification
             question += " " + dialog.ask(prompt="Could you clarify your question?", prefix="Clarification: ")
 
-        # Determine which tables were referenced and build a minimal schema
-        # containing only table and column names. This keeps the prompt short.
-        table_metadata = {t: schema_pairs[t] for t in selected_tables if t in schema_pairs}
+        # Determine which tables were referenced
+        table_metadata = {t: db.extract_table_metadata(t) for t in selected_tables}
 
         schema_for_prompt = {"tables": []}
-        for t, cols in table_metadata.items():
-            schema_for_prompt["tables"].append({"name": t, "columns": cols})
+        for t, meta in table_metadata.items():
+            schema_for_prompt["tables"].append({
+                "name": t,
+                "columns": meta["columns"],
+            })
 
-        prompt = generate_sql_prompt(schema_for_prompt, question, db_type="sqlite")
+        prompt = generate_sql_prompt(schema_for_prompt, question)
         pyperclip.copy(prompt)
         print("Prompt copied to clipboard.")
 
         if agent:
             try:
-                generated_sql = agent.generate(schema_for_prompt, question, db_type="sqlite")
+                generated_sql = agent.generate(prompt)
                 if not generated_sql.strip().endswith(";"): generated_sql += ";"
                 print("Agent : " + generated_sql + "\n")
             except Exception as exc:
@@ -115,7 +115,8 @@ def main() -> None:
             try:
                 result = db.execute_query(user_sql)
                 if "columns" in result:
-                    header = " | ".join(result["columns"])
+                    clean_cols = [col.replace("_", " ") for col in result["columns"]]
+                    header = " | ".join(clean_cols)
                     print(header)
                     print("-" * len(header))
                     for row in result["rows"]:

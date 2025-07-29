@@ -1,9 +1,9 @@
 from __future__ import annotations
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 import torch
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from agent import generate_sql_prompt
 
-class BaseModel:
+class SimpleAgent:
     """Lightweight NL2SQL agent using an off-the-shelf model.
 
     The agent loads a multilingual instruction-tuned model and uses it
@@ -12,19 +12,16 @@ class BaseModel:
     English.
     """
 
-    def __init__(self, model_name: str, device: str | None = None) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+    def __init__(self, model_name: str = "google/flan-t5-large", device: str | None = None) -> None:
+        model_dir = model_name.rsplit("/", 1)[-1]
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir=f"cache/agents/{model_dir}")
+        self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name, cache_dir=f"cache/agents/{model_dir}")
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.model.to(self.device)
 
     def generate(self, prompt: str) -> str:
         """Generate a SQL query for *question* given the database *schema*."""
-        assert hasattr(self, 'model'), "Model must be loaded before generating SQL queries."
-        inputs = self.tokenizer(
-            prompt,
-            return_tensors="pt",
-            truncation=True,
-            max_length=self.tokenizer.model_max_length,
-        ).to(self.device)
+        inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
         outputs = self.model.generate(
             **inputs,
             max_new_tokens=150,
