@@ -10,4 +10,3 @@ class FlanT5(BaseModel):
             load_in_8bit=True,
             device_map=self.device,
         )
-        self.model.to(self.device)

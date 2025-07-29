@@ -21,12 +21,7 @@ DB_BASE_PATH = "databases/spider/test_database"
 # schema linking step. This is separate from the TRESHOLD constant of
 # the linker which filters individual matches.
 CONFIDENCE_THRESHOLD = 80
-
-agents = {
-    "chatgpt": None,
-    "flant5": FlanT5,
-    "llama2": LLaMA2
-}
+models = ["FlanT5-Base", "FlanT5-Large", "LLaMA2", "ChatGPT"]
 
 def compute_average(scores: List[float]) -> float:
     return sum(scores) / len(scores) if scores else 0.0
@@ -34,12 +29,15 @@ def compute_average(scores: List[float]) -> float:
 def main() -> None:
     """Run the end‑to‑end demo pipeline."""
 
-    agent_id = input("Enter the agent ID ['ChatGPT', 'FlanT5', 'LLaMA2']: ").strip().lower()
-    if agent_id not in agents:
-        print(f"Unknown agent ID: {agent_id}. Available options: {list(agents.keys())}")
+    agent_id = input("Enter the agent ID ['ChatGPT', 'FlanT5-Base', 'FlanT5-Large', 'LLaMA2']: ").strip().lower()
+    if agent_id == "chatgpt": agent = None
+    elif agent_id == "flant5-base": agent = FlanT5("google/flan-t5-base")
+    elif agent_id == "flant5-large": agent = FlanT5("google/flan-t5-large")
+    elif agent_id == "llama2": agent = LLaMA2()
+    else:
+        print(f"Unknown agent ID '{agent_id}'. Available options: {models}.")
         return
-    agent_cls = agents[agent_id]
-    agent = agent_cls() if agent_cls else None
+
 
     db_id = input("Enter the database ID: ").strip()
     db_path = os.path.join(DB_BASE_PATH, db_id, f"{db_id}.sqlite")
@@ -111,7 +109,7 @@ def main() -> None:
             except Exception as exc:
                 print(f"Error generating SQL: {exc}")
                 continue
-        extra = "Press Enter to run the generated query or paste another SQL:\n" if generated_sql else "Enter your SQL query:\n"
+        extra = "Press Enter to run the generated query or paste another SQL:\n" if agent else "Enter your SQL query:\n"
         user_sql = input(extra + "SQL> ").strip()
         if not user_sql: user_sql = generated_sql or ""
 
