@@ -1,5 +1,6 @@
 from __future__ import annotations
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+import torch
 from agent import generate_sql_prompt
 
 class BaseModel:
