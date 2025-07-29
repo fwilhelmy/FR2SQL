@@ -1,6 +1,7 @@
 from __future__ import annotations
 from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
 from agent import generate_sql_prompt
+import torch
 
 class BaseModel:
     """Lightweight NL2SQL agent using an off-the-shelf model.
@@ -17,6 +18,7 @@ class BaseModel:
 
     def generate(self, schema: dict, question: str, db_type: str = "SQLite") -> str:
         """Generate a SQL query for *question* given the database *schema*."""
+        assert hasattr(self, 'model'), "Model must be loaded before generating SQL queries."
         prompt = generate_sql_prompt(schema, question, db_type)
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
         outputs = self.model.generate(
