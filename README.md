@@ -15,13 +15,14 @@ We rely on **Spider‑FR**, a French translation of the Spider benchmark, which 
 ## Directory Structure
 
 ```
-├── docs/       Project documents (PDF)
-├── src/        Source code (currently empty)
-├── data/       Placeholder for datasets
-├── logs/       Training logs
+├── src/        Source code
+├── data/       Spider-FR dataset and dialog history
+├── logs/       Logs for the entire system
+├── databases/  SQLite databases used in examples
+├── reports/    Project reports and LaTeX sources
 ```
 
-The `docs` folder contains two PDF documents:
+The `reports` folder contains two PDF documents:
 
 - `MTI820_Proposition_de_Projet.pdf` – the original project proposal describing objectives and planning.
 - `MTI820_Revue_de_Litterature.pdf` – a literature review on using large language models for BI assistance.
