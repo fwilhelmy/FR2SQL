@@ -75,6 +75,8 @@ class DialogModule:
         return matches
 
     def schema_link(self, question: str):
+        if self.memory == []:
+            self.add_to_memory(question)
         tfidf = self.fit_tfidf()
         candidates = self.extract_candidates_yake(question)
         top_phrases = self.rank_candidates_by_tfidf(candidates, tfidf)

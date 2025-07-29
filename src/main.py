@@ -6,10 +6,11 @@ from typing import List, Dict
 import os
 import sqlite3
 
+import pyperclip
+
 from DBManager import DBManager
 from DialogModule import DialogModule
 from agent.PromptGenerator import generate_sql_prompt
-from agent.SimpleAgent import SimpleAgent
 
 # Base path where Spider test databases are stored
 DB_BASE_PATH = "databases/spider/test_database"
@@ -27,11 +28,6 @@ def compute_average(scores: List[float]) -> float:
 def main() -> None:
     """Run the end‑to‑end demo pipeline."""
 
-    mode = input(
-        "Select query generation mode - 'auto' to use the built-in agent or 'manual' to type the SQL yourself [auto/manual]: "
-    ).strip().lower()
-    auto_mode = mode != "manual"
-
     db_id = input("Enter the database ID: ").strip()
     db_path = os.path.join(DB_BASE_PATH, db_id, f"{db_id}.sqlite")
     if not os.path.exists(db_path):
@@ -47,10 +43,10 @@ def main() -> None:
     ]
 
     # File storing past user questions for the DialogModule
-    mem = os.path.join(db_path.rsplit("/",1)[0], "dialog_memory.txt")
+    mem = os.path.join(db_path.rsplit("\\",1)[0], "dialog_memory.txt")
     # Initialize the dialog helper which keeps a history of past questions
     dialog = DialogModule(schema_elements, mem)
-    agent = SimpleAgent()
+    #agent = SimpleAgent()
 
     while True:
         # Ask the user for a new question
@@ -97,17 +93,18 @@ def main() -> None:
             })
 
         prompt = generate_sql_prompt(schema_for_prompt, question, db_type="sqlite")
+        pyperclip.copy(prompt)
+        print("→ Prompt copied to clipboard.")
 
-        print("\n[LLM PROMPT]\n" + prompt + "\n")
-
-        try:
-            generated_sql = agent.generate(schema_for_prompt, question, db_type="sqlite")
-            print("[GENERATED SQL]\n" + generated_sql + "\n")
-        except Exception as exc:
-            print(f"Error generating SQL: {exc}")
-            continue
+        # try:
+        #     generated_sql = agent.generate(schema_for_prompt, question, db_type="sqlite")
+        #     print("[GENERATED SQL]\n" + generated_sql + "\n")
+        # except Exception as exc:
+        #     print(f"Error generating SQL: {exc}")
+        #     continue
         user_sql = input("Press Enter to run the generated query or paste another SQL:\nSQL> ").strip()
         if not user_sql:
+            continue
             user_sql = generated_sql
 
         # Basic validation of the SQL statement
