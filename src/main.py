@@ -9,8 +9,8 @@ import pyperclip
 
 from DBManager import DBManager
 from DialogModule import DialogModule
-from agent.PromptGenerator import generate_sql_prompt
-from agent import SimpleAgent
+from agents.PromptGenerator import generate_sql_prompt
+from agents import FlanT5, BloomZ
 
 # Base path where Spider test databases are stored
 DB_BASE_PATH = "databases/spider/test_database"
@@ -28,7 +28,8 @@ def main() -> None:
 
     mode = input("Enter the agent ID [Manual, (FlanT5)]: ").strip().lower() or "flant5"
     if mode == "manual": agent = None
-    elif mode == "flant5": agent = SimpleAgent()
+    elif mode == "flant5": agent = FlanT5()
+    elif mode == "bloomz": agent = BloomZ()
     else:
         print(f"Unknown command: {mode}")
         print("Available options: Manual, FlanT5")
@@ -45,7 +46,7 @@ def main() -> None:
 
     # Flatten table and column names for the linker
     schema_elements: List[str] = list(schema_pairs.keys()) + [
-        f"{col} {table}" for table, cols in schema_pairs.items() for col in cols
+        f"{col}" for cols in schema_pairs.values() for col in cols
     ]
 
     # File storing past user questions for the DialogModule
@@ -65,12 +66,16 @@ def main() -> None:
         selected = []
         selected_tables = []
         for m in matches:
-            meta = m["schema_element"].split(" ")
-            if len(meta) > 1:
-                m["schema_table"] = meta[1]
-                m["schema_column"] = meta[0]
+            # If the match is a table name, we can directly use it
+            if m['schema_element'] in schema_pairs.keys():
+                m["schema_table"] = m['schema_element']
             else:
-                m["schema_table"] = meta[0]
+                # Otherwise, we assume it's a column name and find the right table
+                for table, cols in schema_pairs.items():
+                    if m['schema_element'] in cols:
+                        m["schema_table"] = table
+                        break
+
             if m["schema_table"] not in selected_tables and m["score"] > CONFIDENCE_THRESHOLD:
                 selected.append(m)
                 selected_tables.append(m["schema_table"])
