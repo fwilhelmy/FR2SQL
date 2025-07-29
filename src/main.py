@@ -2,9 +2,7 @@
 schema using ``DialogModule`` and producing a prompt for the future LLM agent."""
 
 import os
-from re import L
 from typing import List, Dict
-import os
 import sqlite3
 
 import pyperclip
@@ -86,16 +84,13 @@ def main() -> None:
             # Confidence too low → ask for clarification
             question += " " + dialog.ask(prompt="Could you clarify your question?", prefix="Clarification: ")
 
-        # Determine which tables were referenced
-        table_metadata = {t: db.extract_table_metadata(t) for t in selected_tables}
+        # Determine which tables were referenced and build a minimal schema
+        # containing only table and column names. This keeps the prompt short.
+        table_metadata = {t: schema_pairs[t] for t in selected_tables if t in schema_pairs}
 
-        # Convert to the format expected by ContextGenerator
         schema_for_prompt = {"tables": []}
-        for t, meta in table_metadata.items():
-            schema_for_prompt["tables"].append({
-                "name": t,
-                "columns": meta["columns"],
-            })
+        for t, cols in table_metadata.items():
+            schema_for_prompt["tables"].append({"name": t, "columns": cols})
 
         prompt = generate_sql_prompt(schema_for_prompt, question, db_type="sqlite")
         pyperclip.copy(prompt)

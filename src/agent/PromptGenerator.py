@@ -1,4 +1,21 @@
-import json
+
+
+def _schema_to_string(schema: dict) -> str:
+    """Return a compact string representation of *schema*.
+
+    The input schema follows the structure ``{"tables": [{"name": ..., "columns": [...]}, ...]}``.
+    Column entries may be either strings or objects with a ``"name"`` field.
+    The output format is ``table(col1,col2); table2(colA,colB)`` which is far
+    shorter than pretty JSON and uses only essential information.
+    """
+
+    tables = []
+    for table in schema.get("tables", []):
+        name = table.get("name") or table.get("table_name")
+        cols = table.get("columns", [])
+        col_names = [c["name"] if isinstance(c, dict) else str(c) for c in cols]
+        tables.append(f"{name}({','.join(col_names)})")
+    return '; '.join(tables)
 
 def generate_sql_prompt(schema: dict, user_request: str, db_type: str = "PostgreSQL") -> str:
     """
@@ -8,7 +25,9 @@ def generate_sql_prompt(schema: dict, user_request: str, db_type: str = "Postgre
       • Generates exactly one optimized SQL query
       • Emits ONLY the SQL (or a fixed ERROR message)
     """
-    schema_json = json.dumps(schema, indent=2, ensure_ascii=False)
+    # Compact the schema to minimize prompt length while retaining table/column
+    # names. This avoids hitting the 512 token limit of models like Flan-T5.
+    schema_json = _schema_to_string(schema)
 
     prompt = f"""
             SYSTEM: You are an expert SQL generator for {db_type}.
