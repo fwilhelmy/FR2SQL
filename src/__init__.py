@@ -7,24 +7,13 @@ can be imported directly from :mod:`src`.
 from .DBManager import DBManager
 from .DialogModule import DialogModule
 
-from .agent import (
-    SimpleAgent,
-    generate_sql_prompt,
-    SpiderFRDataset,
-    split_and_load,
-)
-
-from .evaluation import Evaluator, Picard, evaluate_dataset
+import agent
+import evaluation
 
 __all__ = [
     "DBManager",
     "DialogModule",
-    "SimpleAgent",
-    "generate_sql_prompt",
-    "SpiderFRDataset",
-    "split_and_load",
-    "Evaluator",
-    "Picard",
-    "evaluate_dataset",
+    "agent",
+    "evaluation",
 ]
 
