@@ -1,5 +1,5 @@
 from __future__ import annotations
-from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, BitsAndBytesConfig
 from agent.BaseModel import BaseModel
 
 class LLaMA2(BaseModel):

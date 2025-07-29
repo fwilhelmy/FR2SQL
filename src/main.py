@@ -38,7 +38,8 @@ def main() -> None:
     if agent_id not in agents:
         print(f"Unknown agent ID: {agent_id}. Available options: {list(agents.keys())}")
         return
-    agent = agents[agent_id]
+    agent_cls = agents[agent_id]
+    agent = agent_cls() if agent_cls else None
 
     db_id = input("Enter the database ID: ").strip()
     db_path = os.path.join(DB_BASE_PATH, db_id, f"{db_id}.sqlite")
