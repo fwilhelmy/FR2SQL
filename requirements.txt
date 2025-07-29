@@ -10,3 +10,4 @@ transformers
 tiktoken
 blobfile
 pyperclip
+tqdm
