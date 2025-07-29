@@ -2,8 +2,6 @@ import json
 import os
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
-
-from spider.process_sql import tokenize
 from torch.utils.data import DataLoader, random_split
 
 class SpiderFRDataset(Dataset):
@@ -14,8 +12,7 @@ class SpiderFRDataset(Dataset):
     are tokenized using Spider's ``tokenize`` utility and then converted to
     token IDs with a HuggingFace ``AutoTokenizer``.
     """
-
-
+    
     DATA_FILES = [
         os.path.join("./data/spider-fr", "train_spider.json"),
         os.path.join("./data/spider-fr", "train_others.json"),
@@ -28,20 +25,22 @@ class SpiderFRDataset(Dataset):
         max_question_length: int = 128,
         max_query_length: int = 256,
     ) -> None:
-        questions = []
-        queries = []
+        self.questions, self.questions_toks = [], []
+        self.queries, self.queries_toks = [], []
         self.db_ids = []
         for path in self.DATA_FILES:
             with open(path, "r", encoding="utf-8") as f:
                 for rec in json.load(f):
                     self.db_ids.append(rec["db_id"])
-                    questions.append(tokenize(rec["question"]))
-                    queries.append(tokenize(rec["query"]))
+                    self.questions.append(rec["question"])
+                    self.questions_toks.append(rec["question_toks"])
+                    self.queries.append(rec["query_toks"])
+                    self.queries_toks.append(rec["query_toks"])
 
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name, use_fast=False)
 
         enc_questions = tokenizer(
-            questions,
+            self.questions_toks,
             is_split_into_words=True,
             padding="max_length",
             truncation=True,
@@ -50,7 +49,7 @@ class SpiderFRDataset(Dataset):
         )
 
         enc_queries = tokenizer(
-            queries,
+            self.queries_toks,
             is_split_into_words=True,
             padding="max_length",
             truncation=True,
@@ -72,7 +71,6 @@ class SpiderFRDataset(Dataset):
             "labels": self.labels[idx],
             "db_id": self.db_ids[idx],
         }
-
 
 def split_and_load(
     dataset: SpiderFRDataset,
@@ -109,4 +107,3 @@ if __name__ == "__main__":
     train_loader, val_loader = split_and_load(dataset, split_ratio=0.8)
     print("Train set size:", len(train_loader.dataset))
     print("Validation set size:", len(val_loader.dataset))
-
