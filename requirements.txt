@@ -1,14 +1,15 @@
 # Project dependencies inferred from LaTeX docs
 accelerate
-bitsandbytes
 datasets
 peft
 picard
 pytorch-lightning
 torch
-transformers
 tiktoken
 blobfile
 pyperclip
 tqdm
+
+bitsandbytes
+transformers
 sentence_transformers

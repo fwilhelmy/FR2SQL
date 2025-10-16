@@ -4,7 +4,7 @@ import os
 
 from tqdm import tqdm
 
-from agent.SpiderFRDataset import SpiderFRDataset
+from agents.SpiderFRDataset import SpiderFRDataset
 
 
 def populate_dialog_memory(

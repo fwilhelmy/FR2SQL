@@ -8,7 +8,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from DialogModule import DialogModule
-from agent.PromptGenerator import generate_sql_prompt
+from agents.PromptGenerator import generate_sql_prompt
 from spider.process_sql import tokenize
 
 MODEL_DIR = "./adapters"

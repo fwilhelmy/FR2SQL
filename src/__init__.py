@@ -8,13 +8,13 @@ from .DBManager import DBManager
 from .DialogModule import DialogModule
 from utils import populate_dialog_memory
 
-import agent
+import agents
 import evaluation
 
 __all__ = [
     "DBManager",
     "DialogModule",
-    "agent",
+    "agents",
     "evaluation",
     "populate_dialog_memory",
 ]
